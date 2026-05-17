@@ -63,11 +63,14 @@ export function CtaSection() {
 
                 <div className="flex flex-col sm:flex-row items-start gap-4">
                   <Button
+                    asChild
                     size="lg"
                     className="bg-ibm-blue hover:bg-ibm-blue/90 text-white px-8 h-14 text-base rounded-full group"
                   >
-                    Try BCBob right now
-                    <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    <a href="/install">
+                      Try BCBob right now
+                      <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </a>
                   </Button>
                 </div>
 
