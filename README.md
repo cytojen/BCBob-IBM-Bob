@@ -185,18 +185,6 @@ This project is part of the IBM Bob Hackathon submission.
 - **Radix UI & shadcn/ui** - For the beautiful component library
 - **Vercel** - For hosting and deployment
 
-## 📧 Contact
-
-**John Ferry Lagman**
-- Email: johnferrydizonlagman@gmail.com
-- GitHub: [@cytojen](https://github.com/cytojen)
-
-## 🔗 Links
-
-- [Live Demo](https://bcbob-ibm-bob.vercel.app) *(if deployed)*
-- [IBM Bob Platform](https://bob.ibm.com/)
-- [Documentation](./bcb/HOW_TO_USE.md)
-
 ---
 
 Built with ❤️ for the IBM Bob Hackathon
