@@ -1,0 +1,433 @@
+patterns:
+
+  # ─────────────────────────── SECRETS ───────────────────────────
+
+  - id: SEC-001
+    name: Hardcoded API Key / Secret (named variable)
+    severity: CRITICAL
+    cwe: CWE-798
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?i)(api_key|apikey|api-key|secret_key|secret-key|access_key|access-key|private_key|client_secret|app_secret)\\s*[=:]\\s*[\"'`]([a-zA-Z0-9_\\-\\.]{16,})[\"'`]"
+    description: Hardcoded API key or secret found in source code
+    fix_template: Move to environment variable and load via process.env / os.getenv
+    llm_prompt: "Analyze this code for hardcoded API keys or secrets: {code}"
+
+  - id: SEC-001b
+    name: Hardcoded Token / Password (generic assignment)
+    severity: CRITICAL
+    cwe: CWE-798
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?i)(password|passwd|pwd|token|auth_token|bearer|jwt_secret|session_secret)\\s*[:=]\\s*[\"'`]([^\"'`\\s]{8,})[\"'`]"
+    description: Hardcoded credential or token literal found in source code
+    fix_template: Load from environment variable; never commit credentials
+    llm_prompt: "Check if this is a real hardcoded credential: {code}"
+
+  - id: SEC-001c
+    name: Well-known Secret Prefix (sk-, pk-, ghp_, AKIA, xox)
+    severity: CRITICAL
+    cwe: CWE-798
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "[\"'`](sk-[a-zA-Z0-9]{20,}|pk_live_[a-zA-Z0-9]{20,}|pk_test_[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36,}|AKIA[A-Z0-9]{16}|xox[bpoa]-[a-zA-Z0-9\\-]{20,}|rk_live_[a-zA-Z0-9]{20,}|eyJ[a-zA-Z0-9_\\-]{30,}\\.[a-zA-Z0-9_\\-]{30,}\\.[a-zA-Z0-9_\\-]{20,})[\"'`]"
+    description: Literal matching a known secret format (OpenAI, Stripe, GitHub, AWS, Slack, JWT)
+    fix_template: Revoke the exposed secret immediately; move to environment variable
+    llm_prompt: "Is this a real secret token that was accidentally hardcoded? {code}"
+
+  - id: SEC-002
+    name: Hardcoded Database Credentials
+    severity: CRITICAL
+    cwe: CWE-798
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?i)(password|passwd|pwd)\\s*[=:]\\s*[\"'`]([^\"'`]{3,})[\"'`]"
+    description: Hardcoded database password in source code
+    fix_template: Use environment variables
+    llm_prompt: Check if this is a real hardcoded credential
+
+  - id: SEC-003
+    name: Client-side Secret Exposure (NEXT_PUBLIC_)
+    severity: HIGH
+    cwe: CWE-312
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "NEXT_PUBLIC_.*(secret|key|token|password|auth|credential|api)"
+    description: Sensitive value exposed to the browser via NEXT_PUBLIC_ prefix
+    fix_template: "Remove NEXT_PUBLIC_ prefix; access only on the server side"
+    llm_prompt: "Is this environment variable exposing a secret to the client? {code}"
+
+  - id: SEC-004
+    name: Sensitive Data in process.env Assignment
+    severity: HIGH
+    cwe: CWE-312
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "process\\.env\\.(SECRET|PASSWORD|KEY|TOKEN|secret|password|key|token)\\s*\\|\\|\\s*[\"'`][^\"'`]{4,}[\"'`]"
+    description: Secret env var has a hardcoded fallback that would be used in production if the env var is missing
+    fix_template: Remove the fallback; fail loudly if the secret is missing
+    llm_prompt: "Does this have a dangerous hardcoded fallback for a secret? {code}"
+
+  # ─────────────────────────── INJECTION ───────────────────────────
+
+  - id: INJ-001
+    name: SQL Injection (Python string concatenation / f-string)
+    severity: CRITICAL
+    cwe: CWE-89
+    languages:
+      - python
+    pattern_type: regex
+    pattern: "(execute|query)\\s*\\(\\s*f\"|\"SELECT.*\"\\s*\\+\\s*|'SELECT.*'\\s*%\\s*"
+    description: SQL query built with string concatenation or f-strings
+    fix_template: Use parameterized queries with placeholders
+    llm_prompt: Analyze if this SQL query is vulnerable to injection
+
+  - id: INJ-001b
+    name: SQL Injection (TypeScript/JS template literal)
+    severity: CRITICAL
+    cwe: CWE-89
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "`\\s*(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE)\\s[^`]*\\$\\{"
+    description: SQL query built with a template literal — user input can break the query
+    fix_template: Use parameterized queries (e.g. pg, mysql2, knex placeholders)
+    llm_prompt: "Is this SQL template literal vulnerable to injection? {code}"
+
+  - id: INJ-001c
+    name: SQL Injection (TypeScript/JS string concatenation)
+    severity: CRITICAL
+    cwe: CWE-89
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?i)(query|execute|db\\.run|db\\.all|pool\\.query|connection\\.query)\\s*\\(\\s*[\"'`].*[\"'`]\\s*\\+"
+    description: SQL query built by concatenating a string with a variable
+    fix_template: Use parameterized queries instead of string concatenation
+    llm_prompt: "Is this concatenated SQL query vulnerable to injection? {code}"
+
+  - id: INJ-002
+    name: Code Injection via eval
+    severity: CRITICAL
+    cwe: CWE-95
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "\\beval\\s*\\(|new\\s+Function\\s*\\("
+    description: Dynamic code execution with eval() or Function constructor
+    fix_template: Remove eval; use safe alternatives (JSON.parse, lookup tables)
+    llm_prompt: "Is this eval() call executing user-controlled input? {code}"
+
+  - id: INJ-003
+    name: Command Injection (Python)
+    severity: CRITICAL
+    cwe: CWE-78
+    languages:
+      - python
+    pattern_type: regex
+    pattern: "os\\.system\\s*\\(|subprocess\\.call.*shell\\s*=\\s*True|subprocess\\.run.*shell\\s*=\\s*True|subprocess\\.Popen.*shell\\s*=\\s*True"
+    description: Command execution with shell=True or os.system
+    fix_template: Use subprocess with shell=False and a list of arguments
+    llm_prompt: Check if this command execution is vulnerable
+
+  - id: INJ-003b
+    name: Command Injection (Node.js)
+    severity: CRITICAL
+    cwe: CWE-78
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?:exec|execSync|spawn|spawnSync|execFile)\\s*\\([^)]*(?:req\\.|params|query|body|input)"
+    description: Shell command built from user input
+    fix_template: "Avoid executing shell commands with user input; use safe APIs"
+    llm_prompt: "Is this shell execution using user-controlled input? {code}"
+
+  - id: INJ-004
+    name: Path Traversal
+    severity: HIGH
+    cwe: CWE-22
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "(?:readFile|readFileSync|createReadStream|open|path\\.join|path\\.resolve)\\s*\\([^)]*(?:req\\.|params|query|body|input)"
+    description: File system access using user-supplied path — path traversal possible
+    fix_template: "Validate and sanitize the path; use path.basename; check it stays within allowed directory"
+    llm_prompt: "Is this file operation vulnerable to path traversal? {code}"
+
+  - id: INJ-005
+    name: Server-Side Template Injection
+    severity: CRITICAL
+    cwe: CWE-94
+    languages:
+      - python
+    pattern_type: regex
+    pattern: "render_template_string\\s*\\(|jinja2\\.Template\\s*\\([^)]*\\+"
+    description: Template rendered from user-supplied string
+    fix_template: Never pass user input to render_template_string; use static templates
+    llm_prompt: "Is user input being used as a template string? {code}"
+
+  # ─────────────────────────── XSS ───────────────────────────
+
+  - id: XSS-001
+    name: Dangerous HTML Injection (dangerouslySetInnerHTML)
+    severity: HIGH
+    cwe: CWE-79
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "dangerouslySetInnerHTML"
+    description: React prop that bypasses XSS protection — raw HTML injected into the DOM
+    fix_template: "Sanitize HTML with DOMPurify before passing to dangerouslySetInnerHTML, or restructure to avoid it"
+    llm_prompt: "Is the value passed to dangerouslySetInnerHTML sanitized? {code}"
+
+  - id: XSS-002
+    name: Direct DOM Injection (innerHTML / document.write)
+    severity: HIGH
+    cwe: CWE-79
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "\\.innerHTML\\s*=|document\\.write\\s*\\("
+    description: Direct assignment to innerHTML or document.write injects unsanitized HTML
+    fix_template: Use textContent for plain text; sanitize with DOMPurify for HTML
+    llm_prompt: "Is user input being assigned to innerHTML or document.write? {code}"
+
+  # ─────────────────────────── AUTH ───────────────────────────
+
+  - id: AUTH-001
+    name: Unprotected Next.js API Route
+    severity: HIGH
+    cwe: CWE-306
+    languages:
+      - typescript
+      - javascript
+    file_patterns:
+      - "*/api/*.ts"
+      - "*/api/*.js"
+      - "*/api/**/*.ts"
+      - "*/api/**/*.js"
+    pattern_type: regex
+    pattern: "export\\s+(?:default\\s+)?(?:async\\s+)?function\\s+(?:handler|GET|POST|PUT|DELETE|PATCH)"
+    description: Next.js API route handler with no visible authentication check
+    fix_template: Add session/JWT check at the top of the handler before any logic
+    llm_prompt: "Does this Next.js API route verify authentication before processing the request? {code}"
+
+  - id: AUTH-002
+    name: Missing Auth on Express/Flask Route
+    severity: CRITICAL
+    cwe: CWE-306
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(app\\.get|app\\.post|app\\.put|app\\.delete|router\\.get|router\\.post|@app\\.route)\\s*\\([\"'`]/api/"
+    description: API route defined without an authentication middleware guard
+    fix_template: Add authentication middleware
+    llm_prompt: Check if this API route has authentication
+
+  - id: AUTH-003
+    name: JWT Verified with Weak / Empty Secret
+    severity: CRITICAL
+    cwe: CWE-347
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "(?:jwt\\.sign|jwt\\.verify|jwt\\.decode)\\s*\\([^)]*[\"'`][^\"'`]{0,10}[\"'`]"
+    description: JWT signed or verified with a very short / likely hardcoded secret
+    fix_template: Use a long random secret from environment variables; enforce algorithm explicitly
+    llm_prompt: "Is this JWT being signed with a weak or hardcoded secret? {code}"
+
+  - id: AUTH-004
+    name: Insecure Cookie (missing Secure / HttpOnly)
+    severity: MEDIUM
+    cwe: CWE-614
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "(?:res\\.cookie|response\\.set_cookie|cookies\\.set)\\s*\\([^)]+\\)"
+    description: Cookie set without checking for Secure and HttpOnly flags
+    fix_template: "Add { httpOnly: true, secure: true, sameSite: 'strict' } to cookie options"
+    llm_prompt: "Is this cookie set without httpOnly and secure flags? {code}"
+
+  # ─────────────────────────── VALIDATION / SSRF ───────────────────────────
+
+  - id: VAL-001
+    name: Missing Input Validation on Request Body
+    severity: MEDIUM
+    cwe: CWE-20
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "req\\.body\\.\\w+|request\\.body\\.\\w+"
+    description: Request body field used directly without visible validation
+    fix_template: Validate with zod/yup/joi before using req.body fields
+    llm_prompt: "Is this request body field validated before use? {code}"
+
+  - id: VAL-002
+    name: Object Spread / Assign with Unvalidated Request Body (Mass Assignment)
+    severity: HIGH
+    cwe: CWE-915
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?:Object\\.assign|\\.\\.\\.)\\s*(?:req\\.body|request\\.body)"
+    description: Entire request body spread/assigned into an object — attacker can set arbitrary fields
+    fix_template: Explicitly pick only the allowed fields from req.body
+    llm_prompt: "Is the full request body being spread/assigned without filtering? {code}"
+
+  - id: VAL-003
+    name: Open Redirect
+    severity: HIGH
+    cwe: CWE-601
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?:redirect|res\\.redirect)\\s*\\([^)]*(?:req\\.|query|params|body)"
+    description: Redirect destination comes from user-controlled input
+    fix_template: Validate redirect URL against an allowlist of trusted destinations
+    llm_prompt: Check if redirect URL comes from user input
+
+  - id: VAL-004
+    name: SSRF — fetch/requests with User-Supplied URL
+    severity: HIGH
+    cwe: CWE-918
+    languages:
+      - python
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "(?:requests\\.get|requests\\.post|fetch|axios\\.get|axios\\.post)\\s*\\([^)]*(?:req\\.|query|params|body|input|url)"
+    description: Server fetches a URL that originates from user input
+    fix_template: Validate URL against an allowlist; block private IP ranges
+    llm_prompt: Check if server fetches URL from user input
+
+  # ─────────────────────────── INFO DISCLOSURE ───────────────────────────
+
+  - id: INFO-001
+    name: Debug Mode Enabled
+    severity: HIGH
+    cwe: CWE-489
+    languages:
+      - python
+    pattern_type: regex
+    pattern: "debug\\s*=\\s*True"
+    description: Debug mode enabled — stack traces and internals exposed
+    fix_template: Set DEBUG=False in production; use environment variable
+    llm_prompt: Check if debug mode is hardcoded
+
+  - id: INFO-002
+    name: Verbose Error Sent to Client
+    severity: MEDIUM
+    cwe: CWE-209
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "res\\.(?:json|send)\\s*\\([^)]*(?:error\\.message|err\\.message|error\\.stack|err\\.stack|e\\.message|e\\.stack)"
+    description: Raw error message or stack trace returned to the client
+    fix_template: Log the full error server-side; return only a generic message to the client
+    llm_prompt: "Is the raw error or stack trace being sent to the client? {code}"
+
+  - id: INFO-003
+    name: Sensitive Data Logged (console.log / print)
+    severity: LOW
+    cwe: CWE-532
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "(?:console\\.log|console\\.info|print)\\s*\\([^)]*(?:password|token|secret|key|credential|auth)"
+    description: Sensitive value being logged — ends up in log files / observability tools
+    fix_template: Remove the log statement or redact the sensitive fields
+    llm_prompt: "Is a sensitive value being logged here? {code}"
+
+  # ─────────────────────────── MISCONFIGURATION ───────────────────────────
+
+  - id: MISC-001
+    name: CORS Wildcard Origin
+    severity: HIGH
+    cwe: CWE-942
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "(?:Access-Control-Allow-Origin|origin)\\s*[:=]\\s*[\"'`]\\*[\"'`]"
+    description: CORS allows any origin — enables cross-site request forgery from any domain
+    fix_template: Restrict Access-Control-Allow-Origin to your specific trusted domains
+    llm_prompt: "Is this CORS configuration too permissive? {code}"
+
+  - id: MISC-002
+    name: Hardcoded Database / Redis Connection String
+    severity: CRITICAL
+    cwe: CWE-798
+    languages:
+      - javascript
+      - typescript
+      - python
+    pattern_type: regex
+    pattern: "[\"'`](?:mongodb|postgresql|postgres|mysql|redis|amqp)://[^\"'`\\s]*:[^\"'`\\s@]+@[^\"'`\\s]+[\"'`]"
+    description: Database connection string with embedded credentials
+    fix_template: Move the full connection string to an environment variable
+    llm_prompt: "Does this connection string contain embedded credentials? {code}"
+
+  - id: MISC-003
+    name: Prototype Pollution
+    severity: HIGH
+    cwe: CWE-1321
+    languages:
+      - javascript
+      - typescript
+    pattern_type: regex
+    pattern: "__proto__|constructor\\s*\\[|prototype\\s*\\["
+    description: Assignment to __proto__ or prototype array notation can pollute Object prototype
+    fix_template: "Use Object.create(null) for lookup maps; validate keys against a whitelist"
+    llm_prompt: "Is this code vulnerable to prototype pollution? {code}"
+
+  # ─────────────────────────── FILE-LEVEL CHECKS ───────────────────────────
+
+  - id: SEC-005
+    name: .env File Committed to Repository
+    severity: CRITICAL
+    cwe: CWE-312
+    languages:
+      - all
+    pattern_type: file_check
+    description: .env file is present and not in .gitignore
+    fix_template: Add .env to .gitignore and rotate any exposed secrets
+    llm_prompt: Check if .env file is tracked by git
