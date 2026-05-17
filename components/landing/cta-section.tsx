@@ -66,20 +66,13 @@ export function CtaSection() {
                     size="lg"
                     className="bg-ibm-blue hover:bg-ibm-blue/90 text-white px-8 h-14 text-base rounded-full group"
                   >
-                    Try BCBob now
+                    Try BCBob right now
                     <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-14 px-8 text-base rounded-full border-foreground/20 hover:bg-foreground/5"
-                  >
-                    View Repository
                   </Button>
                 </div>
 
                 <p className="text-sm text-muted-foreground mt-8 font-mono">
-                  Powered by IBM Context Engine
+                  Powered by IBM Bob
                 </p>
               </div>
 

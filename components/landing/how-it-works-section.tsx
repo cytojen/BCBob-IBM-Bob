@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 const steps = [
@@ -216,8 +217,15 @@ export function HowItWorksSection() {
           </div>
 
           <div className="flex items-center justify-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-ibm-blue text-white font-mono font-bold text-xl shadow-[0_0_20px_rgba(15,98,254,0.3)]">
-              B
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-background/5 p-1 shadow-[0_0_20px_rgba(15,98,254,0.2)] ring-1 ring-background/10 md:h-16 md:w-16">
+              <Image
+                src="/ibm-bob.png"
+                alt="IBM Bob logo"
+                width={64}
+                height={64}
+                className="h-full w-full object-contain"
+                priority={false}
+              />
             </div>
             <p className="text-background/80 font-medium text-lg max-w-md">
               "I understand full repository context before making any change."
